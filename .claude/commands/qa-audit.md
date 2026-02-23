@@ -12,9 +12,16 @@ If no target was provided, ask the user: "What would you like me to audit? Pleas
 
 ---
 
-## Step 1: Detect Repository Root
+## Step 1: Detect Paths
 
-Run `pwd` using the Bash tool to get the absolute path of this QA Team repository. You will use this as `REPO_ROOT` for all subsequent file operations. Store this value — every agent file path and the report output path depends on it.
+Run the following two commands using the Bash tool:
+
+```bash
+echo "$HOME/.claude"
+pwd
+```
+
+Store the first output as `AGENT_ROOT` — this is where all agent definition files and templates are installed. Store the second output as `PROJECT_ROOT` — this is the current project being audited, where the report will be saved.
 
 ---
 
@@ -37,13 +44,13 @@ Announce your classification clearly before proceeding. Example:
 
 Using the REPO_ROOT you detected, read all agent definition files and the report template:
 
-- `{REPO_ROOT}/qa-team/agents/user-tester.md`
-- `{REPO_ROOT}/qa-team/agents/design-auditor.md`
-- `{REPO_ROOT}/qa-team/agents/ux-ui-auditor.md`
-- `{REPO_ROOT}/qa-team/agents/content-readiness-auditor.md`
-- `{REPO_ROOT}/qa-team/agents/performance-auditor.md`
-- `{REPO_ROOT}/qa-team/agents/accessibility-auditor.md`
-- `{REPO_ROOT}/qa-team/templates/audit-report.md`
+- `{AGENT_ROOT}/qa-team/agents/user-tester.md`
+- `{AGENT_ROOT}/qa-team/agents/design-auditor.md`
+- `{AGENT_ROOT}/qa-team/agents/ux-ui-auditor.md`
+- `{AGENT_ROOT}/qa-team/agents/content-readiness-auditor.md`
+- `{AGENT_ROOT}/qa-team/agents/performance-auditor.md`
+- `{AGENT_ROOT}/qa-team/agents/accessibility-auditor.md`
+- `{AGENT_ROOT}/qa-team/templates/audit-report.md`
 
 You will pass these definitions to sub-agents when spawning them.
 
@@ -184,8 +191,9 @@ Sort findings within each tier by impact (most impactful first). Remove any find
 1. Get the current timestamp: run `date +"%Y-%m-%d_%H-%M-%S"` using the Bash tool
 2. Create a URL-safe slug from the audit target (e.g., `https://myapp.com` → `myapp-com`, `/path/to/project` → `local-project`)
 3. Construct the filename: `qa-report_[timestamp]_[slug].md`
-4. Fill in the report template you read from `{REPO_ROOT}/qa-team/templates/audit-report.md` with all synthesized findings, the positive observations, and the coverage notes
-5. Write the completed report to: `{REPO_ROOT}/reports/[filename]`
+4. Fill in the report template you read from `{AGENT_ROOT}/qa-team/templates/audit-report.md` with all synthesized findings, the positive observations, and the coverage notes
+5. Create the reports directory if it does not exist: run `mkdir -p {PROJECT_ROOT}/reports`
+6. Write the completed report to: `{PROJECT_ROOT}/reports/[filename]`
 
 The report must include:
 - All findings with full details (no truncation)
@@ -202,7 +210,7 @@ Output the complete report in the chat conversation. Do not summarize — output
 
 Then tell the user:
 
-> "Full audit report saved to: {REPO_ROOT}/reports/[filename]"
+> "Full audit report saved to: {PROJECT_ROOT}/reports/[filename]"
 
 ---
 
