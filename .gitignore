@@ -1,0 +1,16 @@
+# Generated audit reports — kept locally, not committed
+reports/*
+!reports/.gitkeep
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node (if tooling is added later)
+node_modules/
+npm-debug.log*
+
+# VSCode workspace settings (personal, not shared)
+.vscode/settings.json
+.vscode/launch.json
