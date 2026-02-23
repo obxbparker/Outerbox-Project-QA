@@ -14,6 +14,9 @@ Invoked via `/qa-audit`. Visually audits web applications using Playwright and p
 - **User Tester** — Role definition in `qa-team/agents/user-tester.md`. Tests as a real user across all device sizes.
 - **Design Auditor** — Role definition in `qa-team/agents/design-auditor.md`. Pixel-perfect design adherence review.
 - **UX/UI Auditor** — Role definition in `qa-team/agents/ux-ui-auditor.md`. Interaction quality and UX review.
+- **Content Readiness Auditor** — Role definition in `qa-team/agents/content-readiness-auditor.md`. Verifies content is complete and real, or evaluates structural completeness in scaffold mode. Includes phone number verification.
+- **Performance Auditor** — Role definition in `qa-team/agents/performance-auditor.md`. Measures load times, identifies unoptimized images, flags console errors, and checks Core Web Vitals.
+- **Accessibility Auditor** — Role definition in `qa-team/agents/accessibility-auditor.md`. Systematic WCAG 2.1 AA evaluation: semantic structure, keyboard operability, ARIA, form labels, landmark regions, and assistive technology compatibility.
 
 ### Dev Assist Team
 

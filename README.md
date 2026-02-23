@@ -123,9 +123,14 @@ For detailed setup instructions, see [One-Time Machine Setup](#one-time-machine-
 | **User Tester** | Broken flows, form failures, edge cases, responsive issues, error handling — tests as a real user across all device sizes |
 | **Design Auditor** | Pixel-perfect design adherence — spacing, typography, color, component consistency across all breakpoints |
 | **UX/UI Auditor** | Interaction quality — sticky element bugs, missing feedback, inconsistent patterns, hover-only interactions, cognitive load |
-| **QA Manager** | Coordinates all three, runs follow-up passes, synthesizes a prioritized report |
+| **Content Readiness Auditor** | Placeholder text, missing/wrong contact info, phone number verification, broken images, page titles, meta tags, legal pages — adapts to scaffold vs. content-complete mode |
+| **Performance Auditor** | Console errors, page load times, unoptimized images, missing lazy loading, layout shift, failed network requests |
+| **Accessibility Auditor** | WCAG 2.1 AA — semantic structure, heading hierarchy, keyboard operability, focus visibility, ARIA, form labels, landmark regions, skip navigation, image alt text, link purpose |
+| **QA Manager** | Coordinates all six, asks pre-audit questions, runs follow-up passes, synthesizes a prioritized report |
 
 **This team evaluates only. It does not write code or implement fixes.** Output is a structured audit report with Critical, High, Normal, and Suggestion tiers.
+
+> **Note on accessibility scope:** The UX/UI Auditor covers keyboard operability and focus visibility from an interaction quality perspective. The Accessibility Auditor covers the same areas from a WCAG conformance perspective, plus semantic structure, ARIA, and programmatic relationships that assistive technologies depend on. The QA Manager deduplicates overlapping findings in the final report.
 
 ### Running an Audit
 
@@ -198,6 +203,9 @@ reports/qa-report_2025-01-15_14-32-00_yourapp-com.md
 | `qa-team/agents/user-tester.md` | Personas, test coverage, severity definitions for functional testing |
 | `qa-team/agents/design-auditor.md` | Design evaluation criteria, what counts as a deviation |
 | `qa-team/agents/ux-ui-auditor.md` | Interaction patterns, red flags, UX severity definitions |
+| `qa-team/agents/content-readiness-auditor.md` | Scaffold vs. content-complete mode behavior, what counts as placeholder content, phone number verification |
+| `qa-team/agents/performance-auditor.md` | Performance thresholds, image size limits, console error handling, CLS scoring |
+| `qa-team/agents/accessibility-auditor.md` | WCAG criteria scope, severity thresholds, what counts as a violation vs. enhancement |
 
 The QA Manager orchestration logic lives in `.claude/commands/qa-audit.md`.
 
@@ -384,8 +392,17 @@ QA Manager                               Code Review Manager
     ├──▶ Design Auditor                           ▼
     │    (agents/design-auditor.md)          Developer prompted
     │                                             │
-    └──▶ UX/UI Auditor                            └──▶ Code Implementer (optional)
-         (agents/ux-ui-auditor.md)                     (dev-assist/agents/code-implementer.md)
+    ├──▶ UX/UI Auditor                            └──▶ Code Implementer (optional)
+    │    (agents/ux-ui-auditor.md)                     (dev-assist/agents/code-implementer.md)
+    │
+    ├──▶ Content Readiness Auditor
+    │    (agents/content-readiness-auditor.md)
+    │
+    ├──▶ Performance Auditor
+    │    (agents/performance-auditor.md)
+    │
+    └──▶ Accessibility Auditor
+         (agents/accessibility-auditor.md)
     │
     ▼
 reports/qa-report_[timestamp]_[target].md    reports/dev-review_[timestamp]_[codebase].md
@@ -449,7 +466,10 @@ Agent Teams/
 │   ├── agents/
 │   │   ├── user-tester.md
 │   │   ├── design-auditor.md
-│   │   └── ux-ui-auditor.md
+│   │   ├── ux-ui-auditor.md
+│   │   ├── content-readiness-auditor.md
+│   │   ├── performance-auditor.md
+│   │   └── accessibility-auditor.md
 │   └── templates/
 │       └── audit-report.md
 ├── dev-assist/                      ← Dev Assist Team files
