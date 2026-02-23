@@ -42,7 +42,7 @@ Announce your classification clearly before proceeding. Example:
 
 ## Step 3: Read Agent Definitions
 
-Using the REPO_ROOT you detected, read all agent definition files and the report template:
+Using the AGENT_ROOT you detected, read all agent definition files and the report template:
 
 - `{AGENT_ROOT}/qa-team/agents/user-tester.md`
 - `{AGENT_ROOT}/qa-team/agents/design-auditor.md`
@@ -72,21 +72,379 @@ Store both answers. You will pass them directly to the Content Readiness Auditor
 
 ---
 
-## Step 4: Initial Visual Capture (Live URL only)
+## Step 4: Comprehensive Application Data Collection (Live URL only)
 
-If a live URL was provided, use your Playwright browser tools to conduct an initial visual survey before spawning agents. This gives you direct context and gives agents a starting point.
+**Important architecture note:** Specialist agents run as sub-agents and cannot access Playwright browser tools directly. You — the QA Manager — collect all observational data here in the main context. Agents will receive this data bundle and analyze it without needing browser access. Be thorough. Agents can only find what you document here.
 
-1. Navigate to the URL: use `browser_navigate`
-2. Take a screenshot at each viewport — resize first using `browser_resize` or the appropriate tool, then `browser_screenshot`:
+Work through all phases below before spawning agents.
+
+---
+
+### Phase A: Visual Survey — All Viewports
+
+Navigate to the URL and capture screenshots at four viewport sizes. At each viewport, scroll to capture below-the-fold content if the page is long.
+
+1. `browser_navigate` to the target URL
+2. `browser_wait_for` — wait for the page to settle
+3. For each viewport width, `browser_resize` then `browser_screenshot`:
    - 375px wide (mobile — iPhone SE)
    - 768px wide (tablet — iPad)
    - 1280px wide (desktop — standard laptop)
    - 1440px wide (large desktop)
-3. Scroll down the page and take additional screenshots if the page is long
-4. Navigate to 2–3 additional key pages if links are visible (e.g., a secondary page, a form, a settings area)
-5. Note your visual observations — what you see, what stands out, what looks potentially problematic
 
-Summarize your initial observations to the user before proceeding to spawn agents.
+Then navigate to 3–5 additional key pages visible in the navigation (e.g., About, Contact, a product or detail page, a form, a settings area). At each secondary page, capture at minimum a desktop (1280px) and mobile (375px) screenshot.
+
+Record what you see on each page — visual impressions, anything that looks wrong, layout issues, placeholder content.
+
+---
+
+### Phase B: DOM and Structural Evaluations
+
+Run the following `browser_evaluate` calls on the homepage (and repeat key ones on secondary pages where relevant). You may run multiple evaluations in parallel.
+
+**Page metadata** — run on each page visited:
+```js
+() => ({
+  title: document.title,
+  metaDescription: document.querySelector('meta[name="description"]')?.content || null,
+  ogTitle: document.querySelector('meta[property="og:title"]')?.content || null,
+  ogDescription: document.querySelector('meta[property="og:description"]')?.content || null,
+  ogImage: document.querySelector('meta[property="og:image"]')?.content || null
+})
+```
+
+**HTML language attribute:**
+```js
+() => document.documentElement.lang || null
+```
+
+**Heading hierarchy:**
+```js
+() => [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')]
+  .map(h => ({ level: parseInt(h.tagName[1]), text: h.innerText.trim().slice(0, 80) }))
+```
+
+**Landmark regions:**
+```js
+() => ({
+  main: document.querySelectorAll('main, [role="main"]').length,
+  nav: document.querySelectorAll('nav, [role="navigation"]').length,
+  header: document.querySelectorAll('header, [role="banner"]').length,
+  footer: document.querySelectorAll('footer, [role="contentinfo"]').length,
+  aside: document.querySelectorAll('aside, [role="complementary"]').length,
+  search: document.querySelectorAll('[role="search"]').length
+})
+```
+
+**Skip navigation link:**
+```js
+() => {
+  const links = [...document.querySelectorAll('a')];
+  const skip = links.find(l =>
+    l.href && (
+      l.innerText.toLowerCase().includes('skip') ||
+      l.innerText.toLowerCase().includes('main content') ||
+      l.getAttribute('aria-label')?.toLowerCase().includes('skip')
+    )
+  );
+  return skip ? { found: true, text: skip.innerText, href: skip.getAttribute('href') } : { found: false };
+}
+```
+
+**Form inputs without programmatically associated labels:**
+```js
+() => [...document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]), select, textarea')]
+  .filter(el => {
+    const id = el.id;
+    const hasLabelElement = id && document.querySelector(`label[for="${id}"]`);
+    const hasAriaLabel = el.getAttribute('aria-label');
+    const hasAriaLabelledBy = el.getAttribute('aria-labelledby');
+    const isWrappedInLabel = el.closest('label');
+    return !hasLabelElement && !hasAriaLabel && !hasAriaLabelledBy && !isWrappedInLabel;
+  })
+  .map(el => ({ tag: el.tagName, type: el.type || null, name: el.name || null, placeholder: el.placeholder || null }))
+```
+
+**Buttons without accessible names:**
+```js
+() => [...document.querySelectorAll('button, [role="button"]')]
+  .filter(btn => {
+    const text = btn.innerText.trim();
+    const ariaLabel = btn.getAttribute('aria-label');
+    const ariaLabelledBy = btn.getAttribute('aria-labelledby');
+    const title = btn.getAttribute('title');
+    return !text && !ariaLabel && !ariaLabelledBy && !title;
+  })
+  .map(btn => ({ outerHTML: btn.outerHTML.slice(0, 120) }))
+```
+
+**Duplicate IDs:**
+```js
+() => {
+  const ids = [...document.querySelectorAll('[id]')].map(el => el.id);
+  const counts = ids.reduce((acc, id) => { acc[id] = (acc[id] || 0) + 1; return acc; }, {});
+  return Object.entries(counts).filter(([, count]) => count > 1).map(([id]) => id);
+}
+```
+
+**Images missing alt attribute:**
+```js
+() => [...document.querySelectorAll('img')]
+  .filter(img => !img.hasAttribute('alt'))
+  .map(img => ({ src: img.src.slice(-60), role: img.getAttribute('role') }))
+```
+
+**Broken images:**
+```js
+() => [...document.querySelectorAll('img')]
+  .filter(img => !img.complete || img.naturalWidth === 0)
+  .map(img => img.src)
+```
+
+**Generic link text:**
+```js
+() => [...document.querySelectorAll('a')]
+  .filter(a => {
+    const text = (a.innerText || a.getAttribute('aria-label') || '').trim().toLowerCase();
+    return ['click here', 'here', 'read more', 'learn more', 'more', 'link', 'this link', 'details', 'info'].includes(text);
+  })
+  .map(a => ({ text: a.innerText.trim(), href: a.getAttribute('href') }))
+```
+
+**Phone numbers visible on page:**
+```js
+() => {
+  const text = document.body.innerText;
+  const matches = text.match(/(\+?[\d\s\-().]{7,20})/g) || [];
+  return matches.filter(m => m.replace(/\D/g, '').length >= 7);
+}
+```
+
+**All navigation links:**
+```js
+() => [...document.querySelectorAll('nav a, [role="navigation"] a')]
+  .map(a => ({ text: a.innerText.trim(), href: a.getAttribute('href') }))
+  .filter(a => a.text || a.href)
+```
+
+---
+
+### Phase C: Performance Data
+
+**Page load timing:**
+```js
+() => {
+  const nav = performance.getEntriesByType('navigation')[0];
+  return {
+    ttfb_ms: Math.round(nav.responseStart - nav.requestStart),
+    dom_content_loaded_ms: Math.round(nav.domContentLoadedEventEnd - nav.startTime),
+    load_complete_ms: Math.round(nav.loadEventEnd - nav.startTime)
+  };
+}
+```
+
+**Images missing lazy loading below the fold:**
+```js
+() => [...document.querySelectorAll('img')]
+  .filter(img =>
+    img.getBoundingClientRect().top > window.innerHeight &&
+    img.loading !== 'lazy'
+  )
+  .map(img => ({ src: img.src, top: Math.round(img.getBoundingClientRect().top) }))
+```
+
+**Oversized images (served larger than displayed):**
+```js
+() => [...document.querySelectorAll('img')]
+  .filter(img => img.naturalWidth > 0 && img.naturalWidth > img.clientWidth * 2)
+  .map(img => ({
+    src: img.src,
+    naturalWidth: img.naturalWidth,
+    displayedWidth: img.clientWidth,
+    ratio: Math.round(img.naturalWidth / img.clientWidth)
+  }))
+```
+
+**Cumulative Layout Shift (best effort):**
+```js
+() => new Promise(resolve => {
+  let cls = 0;
+  const obs = new PerformanceObserver(list => {
+    for (const entry of list.getEntries()) {
+      if (!entry.hadRecentInput) cls += entry.value;
+    }
+  });
+  try {
+    obs.observe({ type: 'layout-shift', buffered: true });
+    setTimeout(() => { obs.disconnect(); resolve(Math.round(cls * 1000) / 1000); }, 2000);
+  } catch(e) {
+    resolve('not-supported');
+  }
+})
+```
+
+**Console errors and warnings:**
+```
+browser_console_messages at level "error"
+browser_console_messages at level "warning"
+```
+
+**Network requests:**
+```
+browser_network_requests
+```
+Record: total count, any failed requests (4xx/5xx status), resources over 500KB, third-party domains.
+
+---
+
+### Phase D: Accessibility Snapshot
+
+Take an accessibility snapshot of the homepage:
+```
+browser_snapshot
+```
+This returns the programmatic accessibility tree. Capture it in full — agents will use this to verify ARIA roles, accessible names, and structural semantics.
+
+---
+
+### Phase E: Interactive Element Testing
+
+Test interactive elements that cannot be captured from a static screenshot alone.
+
+**Keyboard navigation — Tab order test:**
+
+Starting from the top of the homepage, press Tab 10–15 times. Take a screenshot after each Tab press to capture the visible focus indicator (or its absence). Note which elements receive focus and in what order.
+
+```
+browser_press_key "Tab"  — repeat 10–15 times, screenshot after each
+```
+
+**Modal and overlay testing:**
+
+If modals, dialogs, or overlays are present or triggerable from the page:
+1. Click the trigger element to open the modal
+2. Screenshot the open state
+3. Press Escape — screenshot to confirm whether it closes
+4. If it did not close via Escape, click the close button (if visible) or click outside the modal
+5. Screenshot the closed state
+6. Note whether focus returns to the trigger after closing
+
+**Form testing:**
+
+If forms are present:
+1. Screenshot the empty form state
+2. Attempt to submit without filling required fields — screenshot the resulting validation state
+3. Note any error messages, their placement, and whether they are associated with specific fields
+
+**Navigation and dropdowns:**
+
+If dropdown menus or expandable navigation exist:
+1. Click to open — screenshot the expanded state
+2. Press Escape — confirm whether it closes
+3. Note whether arrow keys navigate options
+
+---
+
+### Phase F: Compile the Data Bundle
+
+After completing all phases, compile a structured data bundle. You will include this in every agent's prompt in Step 5.
+
+```
+=== DATA BUNDLE: [target URL] ===
+
+SCREENSHOTS CAPTURED:
+- Homepage at 375px: [describe what is visible]
+- Homepage at 768px: [describe what is visible]
+- Homepage at 1280px: [describe what is visible]
+- Homepage at 1440px: [describe what is visible]
+- [Additional pages and states — describe each]
+
+YOUR VISUAL OBSERVATIONS:
+[Describe what you saw across all screenshots. Call out anything that looked wrong,
+broken, inconsistent, or potentially problematic. Be specific — include page, section,
+and viewport where relevant.]
+
+PAGE METADATA (homepage):
+[Paste eval result]
+
+PAGE METADATA (additional pages):
+[Paste eval results per page]
+
+HTML LANG ATTRIBUTE:
+[Paste eval result]
+
+HEADING HIERARCHY:
+[Paste eval result]
+
+LANDMARK REGIONS:
+[Paste eval result]
+
+SKIP NAVIGATION:
+[Paste eval result]
+
+FORM INPUTS WITHOUT LABELS:
+[Paste eval result]
+
+BUTTONS WITHOUT ACCESSIBLE NAMES:
+[Paste eval result]
+
+DUPLICATE IDs:
+[Paste eval result]
+
+IMAGES MISSING ALT ATTRIBUTE:
+[Paste eval result]
+
+BROKEN IMAGES:
+[Paste eval result]
+
+GENERIC LINK TEXT:
+[Paste eval result]
+
+PHONE NUMBERS FOUND:
+[Paste eval result]
+
+ALL NAVIGATION LINKS:
+[Paste eval result]
+
+PERFORMANCE TIMING (homepage):
+[Paste eval result]
+
+IMAGES MISSING LAZY LOADING:
+[Paste eval result]
+
+OVERSIZED IMAGES:
+[Paste eval result]
+
+CLS SCORE:
+[Paste eval result]
+
+CONSOLE ERRORS:
+[Paste browser_console_messages output]
+
+CONSOLE WARNINGS:
+[Paste browser_console_messages output]
+
+NETWORK REQUESTS SUMMARY:
+Total requests: [N]
+Failed requests: [list any 4xx/5xx]
+Resources over 500KB: [list]
+Third-party domains: [list]
+
+ACCESSIBILITY SNAPSHOT (homepage):
+[Paste browser_snapshot output — full text]
+
+KEYBOARD NAVIGATION OBSERVATIONS:
+[Describe the Tab sequence: which elements received focus, whether focus indicators were
+visible and distinguishable, whether focus order followed visual layout, whether any
+element was skipped or caused focus to disappear]
+
+INTERACTIVE ELEMENT OBSERVATIONS:
+[Describe modal behavior (did Escape close it? was there a close button? did focus trap?
+did focus return on close?), form validation behavior, dropdown keyboard behavior, any
+other interactive elements tested]
+```
+
+Summarize your data collection to the user before proceeding to Step 5.
 
 ---
 
@@ -94,7 +452,7 @@ Summarize your initial observations to the user before proceeding to spawn agent
 
 Spawn all six agents simultaneously using the Task tool. Running them in parallel reduces total audit time.
 
-Announce to the user: *"Launching User Tester, Design Auditor, UX/UI Auditor, Content Readiness Auditor, Performance Auditor, and Accessibility Auditor in parallel. This may take a few minutes..."*
+Announce to the user: *"Data collection complete. Launching User Tester, Design Auditor, UX/UI Auditor, Content Readiness Auditor, Performance Auditor, and Accessibility Auditor in parallel to analyze the collected data. This may take a few minutes..."*
 
 ### Constructing Each Agent's Prompt
 
@@ -103,10 +461,10 @@ Each agent's Task prompt must include:
 1. The agent's full role definition (the text you read from their agent file)
 2. The audit target: `$ARGUMENTS`
 3. The input classification from Step 2
-4. Your initial visual observations from Step 4 (if available)
-5. Any design specs provided (pass the Figma URL or image path to all agents, not just the Design Auditor)
+4. The complete data bundle from Step 4, Phase F
+5. Any design specs provided (pass the Figma URL or image path where relevant)
 6. The required JSON output schema (below)
-7. This instruction: *"You have access to Playwright browser tools. Use them actively — navigate, take screenshots at multiple viewports, interact with the application. Do not guess at behavior from source code alone."*
+7. This instruction: *"You do NOT have access to browser tools. All application data has been pre-collected by the QA Manager and is provided in the data bundle above. Analyze the provided screenshots, DOM evaluation results, performance measurements, accessibility snapshot, and behavioral observations according to your role. Do not request browser access or attempt to navigate to URLs — base all findings on the data provided."*
 
 For the **Content Readiness Auditor** specifically, also include:
 
@@ -129,12 +487,12 @@ Each agent must return their findings in this exact format:
       "title": "Short descriptive title",
       "description": "Full description of the issue.",
       "location": "Specific page, URL path, component, or element",
-      "evidence": "What was actually observed — screenshot descriptions, computed values, specific behaviors",
+      "evidence": "What was actually observed — screenshot descriptions, computed values, specific behaviors from the data bundle",
       "recommendation": "Specific actionable fix"
     }
   ],
   "positive_observations": ["Things done well."],
-  "coverage_notes": "What was tested and any limitations."
+  "coverage_notes": "What was analyzed, what data was available, and any limitations due to data collection scope."
 }
 ```
 
@@ -156,16 +514,23 @@ When all six agents return their findings:
 
 ## Step 7: Phase 2 — Targeted Follow-up Iterations
 
-Review the combined findings and determine if follow-up is needed. Spawn targeted follow-up passes for:
+Review the combined findings and determine if follow-up is needed. Common reasons for follow-up:
 
-- **Vague findings** — "The button is slow" needs specific reproduction steps and timing
+- **Vague findings** — "The button is slow" needs specific timing and reproduction steps
 - **Contradictions** — Two agents disagree about the same element's behavior
 - **Unsubstantiated critical/high findings** — A serious finding with no clear evidence or reproduction path
-- **Access gaps** — An agent noted they couldn't reach part of the application
+- **Access gaps** — An agent noted they couldn't find something in the provided data
 
-For each follow-up, spawn only the relevant agent with a targeted prompt:
+**Follow-up process for live URLs:**
 
-> "[Full agent role definition]. FOLLOW-UP INVESTIGATION: In Phase 1 we found the following issue: [finding details]. Please investigate specifically: [what to look for and where]. Use Playwright to navigate to [specific URL/location] and document exactly what you observe. Return findings in the standard JSON schema."
+Since agents cannot use browser tools, you must collect any additional data needed in the main context first, then spawn a targeted analysis agent with that data.
+
+1. Identify the ambiguous finding and determine what additional data would resolve it
+2. Navigate to the relevant page or state using your Playwright tools
+3. Collect the specific data — targeted screenshots, DOM evaluations, or interaction tests
+4. Spawn a targeted follow-up agent with a focused prompt:
+
+> "[Full agent role definition]. FOLLOW-UP INVESTIGATION: In Phase 1 we found the following issue: [finding details]. The QA Manager has collected the following additional data to help you investigate: [targeted data]. Based on this data, determine whether the finding is accurate, and if so, document it with precise evidence. Return findings in the standard JSON schema."
 
 Run follow-up passes until findings are adequately evidenced. Use judgment — typically 1–2 passes per ambiguous finding is sufficient. Do not iterate endlessly.
 
@@ -217,7 +582,8 @@ Then tell the user:
 ## QA Manager Behavior Rules
 
 - **Be specific.** Vague findings are useless. "The button is broken" is not a finding. Exact behavior, location, and conditions are required.
-- **Be evidence-based.** Only report what agents actually observed via Playwright or source analysis. No hallucinated issues.
+- **Be evidence-based.** Only report what agents actually observed in the data bundle. No hallucinated issues.
+- **Be thorough in data collection.** Step 4 is the foundation of the entire audit. If you skip a page or an evaluation, agents cannot find issues there. Invest the time.
 - **Be honest about severity.** "Critical" is reserved for genuine blockers. Overusing it makes the report untrustworthy.
-- **Be honest about coverage.** If the input type limits what could be tested (screenshots only, no live URL), say so clearly in coverage notes.
+- **Be honest about coverage.** If the input type limits what could be tested (screenshots only, no live URL), say so clearly in coverage notes. If an interactive state couldn't be triggered, note it.
 - **Never implement.** If you find yourself writing code or suggesting implementation details beyond a recommendation, stop. You evaluate, you do not build.

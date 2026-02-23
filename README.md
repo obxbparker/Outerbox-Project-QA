@@ -283,10 +283,10 @@ From the Claude Code chat panel in any project:
 
 1. **QA Manager classifies your input** — identifies URLs, local paths, design specs, and screenshots
 2. **Pre-audit questions** — QA Manager asks whether content is complete and what phone number should appear on the site
-3. **Initial visual capture** — navigates to the URL and takes screenshots at 375px, 768px, 1280px, and 1440px viewports
-4. **Six agents run in parallel** — User Tester, Design Auditor, UX/UI Auditor, Content Readiness Auditor, Performance Auditor, and Accessibility Auditor each independently inspect the application
+3. **Comprehensive data collection** — QA Manager navigates the full application using Playwright, capturing screenshots at all four viewports (375px, 768px, 1280px, 1440px), running DOM evaluations, measuring performance, collecting console errors and network requests, testing modals and forms, running keyboard navigation tests, and capturing the accessibility tree. All data is compiled into a structured bundle.
+4. **Six agents analyze in parallel** — User Tester, Design Auditor, UX/UI Auditor, Content Readiness Auditor, Performance Auditor, and Accessibility Auditor each receive the pre-collected data bundle and apply their domain expertise. Agents analyze the data without needing direct browser access — this is what makes parallel execution reliable.
 5. **QA Manager reviews results** — deduplicates overlapping findings, identifies gaps
-6. **Follow-up passes** — vague or unsubstantiated findings trigger targeted follow-up investigations
+6. **Follow-up passes** — vague or unsubstantiated findings trigger targeted data collection by the QA Manager, followed by focused agent analysis
 7. **Final report generated** — saved to `reports/` inside your project and printed in full in the chat
 
 ### Understanding the QA Report
@@ -444,7 +444,7 @@ Add this content:
 }
 ```
 
-> **Why user-level config?** Both commands spawn sub-agents via the Task tool. Sub-agents inherit the Playwright MCP from the user-level config, giving each specialist agent its own browser access.
+> **Why user-level config?** The QA Manager uses Playwright to collect all application data before spawning specialist agents. Because the QA Manager runs in the main conversation context — not as a sub-agent — it uses your user-level Playwright config directly. Specialist agents receive pre-collected data bundles and do not need browser access themselves.
 
 ### Step 4: Run the Install Script
 
