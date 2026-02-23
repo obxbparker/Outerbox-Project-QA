@@ -39,9 +39,9 @@ Parse `$ARGUMENTS`. You expect up to two paths:
 
 Using REPO_ROOT, read all of the following:
 
-- `{REPO_ROOT}/dev-assist/agents/code-reviewer.md`
-- `{REPO_ROOT}/dev-assist/agents/code-implementer.md`
-- `{REPO_ROOT}/dev-assist/templates/review-report.md`
+- `{REPO_ROOT}/dev-team/agents/code-reviewer.md`
+- `{REPO_ROOT}/dev-team/agents/code-implementer.md`
+- `{REPO_ROOT}/dev-team/templates/review-report.md`
 
 ---
 
@@ -61,7 +61,7 @@ Then announce: *"Spawning Code Reviewer — this may take a few minutes dependin
 
 Spawn a Code Reviewer sub-agent using the Task tool. Pass the following in the agent's prompt:
 
-1. The full text of `dev-assist/agents/code-reviewer.md` as the agent's role definition
+1. The full text of `dev-team/agents/code-reviewer.md` as the agent's role definition
 2. The full text of the QA report
 3. The codebase path
 4. This instruction: *"The codebase is located at [CODEBASE_PATH]. Use Read, Grep, and Glob to explore it. Do not assume file locations — find them."*
@@ -77,7 +77,7 @@ When the Code Reviewer returns its report:
 1. Run `date +"%Y-%m-%d_%H-%M-%S"` using the Bash tool to get the current timestamp
 2. Derive a slug from the codebase path (for example: `/Users/name/projects/my-app` → `my-app`)
 3. Construct the filename: `dev-review_[timestamp]_[slug].md`
-4. Fill in the report template from `{REPO_ROOT}/dev-assist/templates/review-report.md` with the Code Reviewer's output
+4. Fill in the report template from `{REPO_ROOT}/dev-team/templates/review-report.md` with the Code Reviewer's output
 5. Write the completed report to: `{REPO_ROOT}/reports/[filename]`
 6. Print the full report in the chat — do not truncate or summarize it
 
@@ -105,7 +105,7 @@ Count the total number of changes in the report and include that number in the p
 
 **If the developer chose option 2 or 3:** Spawn a Code Implementer sub-agent using the Task tool. Pass the following:
 
-1. The full text of `dev-assist/agents/code-implementer.md` as the agent's role definition
+1. The full text of `dev-team/agents/code-implementer.md` as the agent's role definition
 2. The full Code Reviewer report
 3. The codebase path
 4. The specific list of changes to implement (all changes, or the subset the developer specified)

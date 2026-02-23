@@ -263,8 +263,8 @@ Any change marked `[REQUIRES APPROVAL]` will cause the Code Implementer to stop 
 
 | File | Controls |
 |------|---------|
-| `dev-assist/agents/code-reviewer.md` | How findings are mapped to code, what gets flagged for approval, reporting format |
-| `dev-assist/agents/code-implementer.md` | How changes are applied, comment style, approval gate behavior |
+| `dev-team/agents/code-reviewer.md` | How findings are mapped to code, what gets flagged for approval, reporting format |
+| `dev-team/agents/code-implementer.md` | How changes are applied, comment style, approval gate behavior |
 
 The orchestration logic lives in `.claude/commands/dev-assist.md`.
 
@@ -387,13 +387,13 @@ QA Manager                               Code Review Manager
 (.claude/commands/qa-audit.md)           (.claude/commands/dev-assist.md)
     │                                             │
     ├──▶ User Tester                              └──▶ Code Reviewer
-    │    (agents/user-tester.md)                       (dev-assist/agents/code-reviewer.md)
+    │    (agents/user-tester.md)                       (dev-team/agents/code-reviewer.md)
     │                                             │
     ├──▶ Design Auditor                           ▼
     │    (agents/design-auditor.md)          Developer prompted
     │                                             │
     ├──▶ UX/UI Auditor                            └──▶ Code Implementer (optional)
-    │    (agents/ux-ui-auditor.md)                     (dev-assist/agents/code-implementer.md)
+    │    (agents/ux-ui-auditor.md)                     (dev-team/agents/code-implementer.md)
     │
     ├──▶ Content Readiness Auditor
     │    (agents/content-readiness-auditor.md)
@@ -472,7 +472,7 @@ Agent Teams/
 │   │   └── accessibility-auditor.md
 │   └── templates/
 │       └── audit-report.md
-├── dev-assist/                      ← Dev Assist Team files
+├── dev-team/                        ← Dev Assist Team files
 │   ├── agents/
 │   │   ├── code-reviewer.md
 │   │   └── code-implementer.md

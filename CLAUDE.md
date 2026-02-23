@@ -23,8 +23,8 @@ Invoked via `/qa-audit`. Visually audits web applications using Playwright and p
 Invoked via `/dev-assist`. Translates QA report findings into targeted, file-level code changes.
 
 - **Code Review Manager** — Orchestrator. Coordinates the team, manages the developer handoff prompt, oversees implementation.
-- **Code Reviewer** — Role definition in `dev-assist/agents/code-reviewer.md`. Maps QA findings to exact file locations and line ranges with targeted change recommendations.
-- **Code Implementer** — Role definition in `dev-assist/agents/code-implementer.md`. Implements changes one at a time with mandatory approval gates for structural changes.
+- **Code Reviewer** — Role definition in `dev-team/agents/code-reviewer.md`. Maps QA findings to exact file locations and line ranges with targeted change recommendations.
+- **Code Implementer** — Role definition in `dev-team/agents/code-implementer.md`. Implements changes one at a time with mandatory approval gates for structural changes.
 
 
 ---
