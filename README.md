@@ -55,7 +55,22 @@ npx playwright install chromium
 
 Claude Code needs to know about the Playwright MCP server. Add it to your user-level Claude configuration.
 
-**Open (or create) `~/.claude.json`** and add the following. If the file already has content, merge the `mcpServers` key — don't replace the whole file.
+Add the following to your user-level Claude configuration file. If the file already has content, merge the `mcpServers` key — don't replace the whole file.
+
+**macOS / Linux** — open or create `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+**Windows** — open or create `C:\Users\YourName\.claude.json`:
 
 ```json
 {
@@ -113,8 +128,14 @@ From the Claude Code chat panel with the QA Team project open:
 
 ### Audit a Local Codebase
 
+**macOS / Linux:**
 ```
 /qa-audit /Users/yourname/projects/my-app
+```
+
+**Windows:**
+```
+/qa-audit C:\Users\yourname\projects\my-app
 ```
 
 ### Audit with Design Specs (Figma + Live URL)
@@ -233,9 +254,13 @@ Make sure you have the `QA Team` folder open as the **root** of your VSCode work
 
 ### Playwright browser tools aren't available
 
-1. Verify the MCP config in `~/.claude.json` — check the JSON is valid (no trailing commas)
+1. Verify the MCP config file — check the JSON is valid (no trailing commas)
+   - macOS / Linux: `~/.claude.json`
+   - Windows: `C:\Users\YourName\.claude.json`
 2. Verify the package is accessible: `npx @playwright/mcp@latest --version`
-3. Restart the Claude Code extension: `Cmd+Shift+P` → "Restart Extension Host"
+3. Restart the Claude Code extension:
+   - macOS: `Cmd+Shift+P` → "Restart Extension Host"
+   - Windows: `Ctrl+Shift+P` → "Restart Extension Host"
 
 ### The app requires authentication
 
@@ -255,8 +280,19 @@ Make sure your dev server is running before starting the audit. Use the full URL
 
 ### Reports directory is missing
 
+**macOS / Linux:**
 ```bash
 mkdir -p reports && touch reports/.gitkeep
+```
+
+**Windows (Command Prompt):**
+```cmd
+mkdir reports && type nul > reports\.gitkeep
+```
+
+**Windows (PowerShell):**
+```powershell
+New-Item -ItemType Directory -Force reports; New-Item reports\.gitkeep
 ```
 
 ---
