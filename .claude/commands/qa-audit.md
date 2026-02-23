@@ -37,10 +37,10 @@ Announce your classification clearly before proceeding. Example:
 
 Using the REPO_ROOT you detected, read all agent definition files and the report template:
 
-- `{REPO_ROOT}/agents/user-tester.md`
-- `{REPO_ROOT}/agents/design-auditor.md`
-- `{REPO_ROOT}/agents/ux-ui-auditor.md`
-- `{REPO_ROOT}/templates/audit-report.md`
+- `{REPO_ROOT}/qa-team/agents/user-tester.md`
+- `{REPO_ROOT}/qa-team/agents/design-auditor.md`
+- `{REPO_ROOT}/qa-team/agents/ux-ui-auditor.md`
+- `{REPO_ROOT}/qa-team/templates/audit-report.md`
 
 You will pass these definitions to sub-agents when spawning them.
 
@@ -160,7 +160,7 @@ Sort findings within each tier by impact (most impactful first). Remove any find
 1. Get the current timestamp: run `date +"%Y-%m-%d_%H-%M-%S"` using the Bash tool
 2. Create a URL-safe slug from the audit target (e.g., `https://myapp.com` → `myapp-com`, `/path/to/project` → `local-project`)
 3. Construct the filename: `qa-report_[timestamp]_[slug].md`
-4. Fill in the report template you read from `{REPO_ROOT}/templates/audit-report.md` with all synthesized findings, the positive observations, and the coverage notes
+4. Fill in the report template you read from `{REPO_ROOT}/qa-team/templates/audit-report.md` with all synthesized findings, the positive observations, and the coverage notes
 5. Write the completed report to: `{REPO_ROOT}/reports/[filename]`
 
 The report must include:

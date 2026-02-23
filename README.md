@@ -1,12 +1,122 @@
-# QA Agent Team
+# Agent Teams
 
-A reusable, AI-powered QA team for auditing web applications. Three specialist agents — a User Tester, Design Auditor, and UX/UI Auditor — are coordinated by a QA Manager to produce structured, prioritized audit reports.
-
-The team uses Claude Code + the Playwright MCP to visually inspect and interact with the application being audited, not just read its source code.
+A reusable, AI-powered toolkit containing two agent teams designed to work together: a QA team that audits web applications, and a developer assist team that translates those findings into targeted code changes.
 
 ---
 
-## What the Team Does
+## Table of Contents
+
+- [Quick Refresher](#quick-refresher)
+- [Quick Start Guide](#quick-start-guide)
+- [QA Team](#qa-team)
+  - [What the QA Team Does](#what-the-qa-team-does)
+  - [Running an Audit](#running-an-audit)
+  - [What Happens During an Audit](#what-happens-during-an-audit)
+  - [Understanding the QA Report](#understanding-the-qa-report)
+  - [Customizing the QA Agents](#customizing-the-qa-agents)
+- [Dev Assist Team](#dev-assist-team)
+  - [What the Dev Assist Team Does](#what-the-dev-assist-team-does)
+  - [Running a Review](#running-a-review)
+  - [What Happens During a Review](#what-happens-during-a-review)
+  - [Understanding the Review Report](#understanding-the-review-report)
+  - [Customizing the Dev Assist Agents](#customizing-the-dev-assist-agents)
+- [Prerequisites](#prerequisites)
+- [One-Time Machine Setup](#one-time-machine-setup)
+- [Per-Project Setup](#per-project-setup-after-cloning)
+- [Getting Updates](#getting-updates)
+- [Team Architecture](#team-architecture)
+- [Troubleshooting](#troubleshooting)
+- [File Structure](#file-structure)
+
+---
+
+## Quick Refresher
+
+_Already completed setup? Here is everything you need._
+
+Open this project folder in VSCode, then type in the Claude Code chat:
+
+### QA Team Commands
+
+| Goal | Command |
+|------|---------|
+| Audit a live site | `/qa-audit https://yourapp.com` |
+| Audit a local dev server | `/qa-audit http://localhost:3000` |
+| Audit a local codebase | `/qa-audit /Users/yourname/projects/my-app` |
+| Audit with Figma design specs | `/qa-audit https://figma.com/file/xxx https://yourapp.com` |
+| Audit with an auth note | `/qa-audit https://yourapp.com --note "Login: user@test.com / pass123"` |
+
+### Dev Assist Team Commands
+
+| Goal | Command |
+|------|---------|
+| Review a QA report against a codebase | `/dev-assist /path/to/qa-report.md /path/to/codebase` |
+| Review using the most recent QA report | `/dev-assist /path/to/codebase` |
+
+Reports from both teams save automatically to the `reports/` folder.
+
+---
+
+## Quick Start Guide
+
+_New to this project? Follow these steps._
+
+**Step 1 — Install Node.js 18 or higher** if you have not already: [nodejs.org](https://nodejs.org)
+
+> The Dev Assist Team does not require Node. This is only needed for the QA Team's Playwright browser.
+
+**Step 2 — Install the Playwright MCP** (one-time, per machine, QA Team only):
+
+```bash
+npm install -g @playwright/mcp
+npx playwright install chromium
+```
+
+**Step 3 — Configure Claude Code** to use Playwright. Open or create `~/.claude.json`:
+
+- macOS: run `open -e ~/.claude.json` in Terminal
+- Windows: run `notepad $env:USERPROFILE\.claude.json` in PowerShell
+
+Add this content (merge if the file already has content — do not replace the whole file):
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+**Step 4 — Clone this repository** and open the folder in VSCode as its own workspace:
+
+```
+File → Open Folder → select this project folder
+```
+
+**Step 5 — Verify the setup.** Type `/` in the Claude Code chat — both `qa-audit` and `dev-assist` should appear. Then ask: _"What Playwright browser tools do you have available?"_ — Claude should list tools like `browser_navigate`, `browser_screenshot`, etc.
+
+**Step 6 — Run your first audit:**
+
+```
+/qa-audit https://yourapp.com
+```
+
+Then use the resulting report with the Dev Assist Team:
+
+```
+/dev-assist /path/to/reports/qa-report_[timestamp].md /path/to/your/app
+```
+
+For detailed setup instructions, see [One-Time Machine Setup](#one-time-machine-setup) below.
+
+---
+
+## QA Team
+
+### What the QA Team Does
 
 | Agent | What They Look For |
 |-------|-------------------|
@@ -15,118 +125,19 @@ The team uses Claude Code + the Playwright MCP to visually inspect and interact 
 | **UX/UI Auditor** | Interaction quality — sticky element bugs, missing feedback, inconsistent patterns, hover-only interactions, cognitive load |
 | **QA Manager** | Coordinates all three, runs follow-up passes, synthesizes a prioritized report |
 
-**This team evaluates only. It does not write code or implement fixes.** Output is a structured audit report with Critical, High, Normal, and Suggestion tiers that your development team can act on.
+**This team evaluates only. It does not write code or implement fixes.** Output is a structured audit report with Critical, High, Normal, and Suggestion tiers.
 
----
+### Running an Audit
 
-## Prerequisites
+From the Claude Code chat panel:
 
-Before using this team, each developer machine needs:
-
-| Requirement | Version | Purpose |
-|-------------|---------|---------|
-| **Claude Code** (VSCode extension) | Latest | The AI coding assistant that runs the agents |
-| **Node.js** | 18 or higher | Required to run the Playwright MCP server |
-| **Git** | Any recent version | For cloning and updating this repo |
-
----
-
-## One-Time Machine Setup
-
-This setup is done once per developer machine.
-
-### Step 1: Install the Playwright MCP
-
-The Playwright MCP gives Claude Code a real browser it can see, navigate, and interact with.
-
-```bash
-npm install -g @playwright/mcp
-```
-
-Then install the browsers Playwright needs:
-
-```bash
-npx playwright install chromium
-```
-
-> **Why chromium only?** Chromium covers the vast majority of audit needs. If you want cross-browser coverage, also run `npx playwright install firefox webkit`.
-
-### Step 2: Configure Claude Code to Use Playwright
-
-Claude Code needs to know about the Playwright MCP server. Add it to your user-level Claude configuration.
-
-Add the following to your user-level Claude configuration file. If the file already has content, merge the `mcpServers` key — don't replace the whole file.
-
-**macOS / Linux** — open or create `~/.claude.json`:
-
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"]
-    }
-  }
-}
-```
-
-**Windows** — open or create `C:\Users\YourName\.claude.json`:
-
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"]
-    }
-  }
-}
-```
-
-> **Why user-level config?** The QA Agent Team spawns sub-agents using the Task tool. Those sub-agents inherit the Playwright MCP from the user-level config, giving each specialist agent their own browser access. The project-level `.mcp.json` in this repo covers the QA Manager — the user-level config covers the sub-agents.
-
-### Step 3: Verify the Setup
-
-Open the QA Team project in VSCode with Claude Code and ask: *"What Playwright browser tools do you have available?"* — Claude should list tools like `browser_navigate`, `browser_screenshot`, etc.
-
----
-
-## Per-Project Setup (After Cloning)
-
-### Step 1: Clone the Repository
-
-```bash
-git clone [your-repo-url] "QA Team"
-cd "QA Team"
-```
-
-### Step 2: Open in VSCode
-
-Open the `QA Team` folder as its own VSCode workspace:
-
-```
-File → Open Folder → select the QA Team folder
-```
-
-> **Important:** Open the `QA Team` folder directly, not as a subfolder inside a larger workspace. The `/qa-audit` command is a project-level command — it only appears when this specific project is active in Claude Code.
-
-### Step 3: Verify the Command is Available
-
-In the Claude Code chat panel, type `/` — you should see `qa-audit` appear in the command list. If it doesn't appear, make sure you have the `QA Team` folder open as the root workspace.
-
----
-
-## Running an Audit
-
-From the Claude Code chat panel with the QA Team project open:
-
-### Audit a Live URL
+#### Audit a Live URL
 
 ```
 /qa-audit https://yourapp.com
 ```
 
-### Audit a Local Codebase
+#### Audit a Local Codebase
 
 **macOS / Linux:**
 ```
@@ -138,48 +149,40 @@ From the Claude Code chat panel with the QA Team project open:
 /qa-audit C:\Users\yourname\projects\my-app
 ```
 
-### Audit with Design Specs (Figma + Live URL)
+#### Audit with Design Specs (Figma + Live URL)
 
 ```
 /qa-audit https://www.figma.com/file/xxxxx/Design https://yourapp.com
 ```
 
-### Audit from Screenshots
+#### Audit from Screenshots
 
 ```
 /qa-audit /Users/yourname/Desktop/app-screenshots
 ```
 
-### Mixed Inputs
-
-You can combine multiple inputs — the QA Manager will classify each one:
+#### Mixed Inputs
 
 ```
 /qa-audit https://yourapp.com /path/to/design-mockup.png
 ```
 
----
-
-## What Happens During an Audit
+### What Happens During an Audit
 
 1. **QA Manager classifies your input** — identifies URLs, local paths, design specs, and screenshots
-2. **Initial visual capture** — If a live URL is provided, the QA Manager navigates to it and takes screenshots at 375px, 768px, 1280px, and 1440px viewports
-3. **Three agents run in parallel** — User Tester, Design Auditor, and UX/UI Auditor each use Playwright to independently inspect the application
-4. **QA Manager reviews results** — Deduplicates overlapping findings, identifies gaps
-5. **Follow-up passes** — If any findings are vague or need more evidence, targeted follow-up investigations run
-6. **Final report generated** — Saved to `reports/` in this repo and printed in full in the chat
+2. **Initial visual capture** — navigates to the URL and takes screenshots at 375px, 768px, 1280px, and 1440px viewports
+3. **Three agents run in parallel** — User Tester, Design Auditor, and UX/UI Auditor each independently inspect the application
+4. **QA Manager reviews results** — deduplicates overlapping findings, identifies gaps
+5. **Follow-up passes** — vague or unsubstantiated findings trigger targeted follow-up investigations
+6. **Final report generated** — saved to `reports/` and printed in full in the chat
 
----
+### Understanding the QA Report
 
-## Understanding the Report
-
-Reports are saved to the `reports/` folder with timestamped filenames:
+Reports are saved with timestamped filenames:
 
 ```
 reports/qa-report_2025-01-15_14-32-00_yourapp-com.md
 ```
-
-### Severity Tiers
 
 | Severity | Meaning | Action |
 |----------|---------|--------|
@@ -188,27 +191,175 @@ reports/qa-report_2025-01-15_14-32-00_yourapp-com.md
 | **Normal** | Minor inconsistencies, edge cases, suboptimal patterns | Fix in next sprint |
 | **Suggestions** | Polish and enhancement opportunities | Add to backlog |
 
----
-
-## Customizing the Agents
-
-Each agent's behavior is defined in the `agents/` directory. Edit these files to tune what each agent looks for, how they prioritize, and what they report.
+### Customizing the QA Agents
 
 | File | Controls |
 |------|---------|
-| `agents/user-tester.md` | Personas, test coverage, severity definitions for functional testing |
-| `agents/design-auditor.md` | Design evaluation criteria, what counts as a deviation |
-| `agents/ux-ui-auditor.md` | Interaction patterns, red flags, UX severity definitions |
+| `qa-team/agents/user-tester.md` | Personas, test coverage, severity definitions for functional testing |
+| `qa-team/agents/design-auditor.md` | Design evaluation criteria, what counts as a deviation |
+| `qa-team/agents/ux-ui-auditor.md` | Interaction patterns, red flags, UX severity definitions |
 
-Changes take effect on the next `/qa-audit` run — no restart required.
+The QA Manager orchestration logic lives in `.claude/commands/qa-audit.md`.
 
-The QA Manager orchestration logic lives in `.claude/commands/qa-audit.md`. Edit this to change how the team is coordinated, how many iteration passes it runs, or where reports are saved.
+---
+
+## Dev Assist Team
+
+### What the Dev Assist Team Does
+
+| Agent | What They Do |
+|-------|-------------|
+| **Code Reviewer** | Reads the QA report and the actual codebase. Maps each finding to an exact file and line range. Writes targeted change recommendations. Flags structural changes for approval. |
+| **Code Implementer** | Implements the Code Reviewer's recommendations one at a time. Re-reads each file before editing. Adds comments. Stops for developer approval on structural changes. |
+| **Code Review Manager** | Coordinates both agents, manages the developer handoff prompt, saves reports, relays approval requests. Never modifies code directly. |
+
+**This team modifies code with precision. It does not rewrite, refactor, or expand scope beyond what the QA report describes.**
+
+### Running a Review
+
+#### Review a QA Report Against a Codebase
+
+```
+/dev-assist /path/to/qa-report.md /path/to/codebase
+```
+
+#### Review Using the Most Recent QA Report
+
+If only the codebase path is provided, the team looks for the most recent `qa-report_*.md` in the `reports/` folder:
+
+```
+/dev-assist /path/to/codebase
+```
+
+### What Happens During a Review
+
+1. **Code Review Manager reads the QA report** — summarizes finding counts and severity breakdown
+2. **Code Reviewer is spawned** — explores the codebase to locate the code behind each finding
+3. **Review report is generated** — every finding mapped to an exact file and line, with current code quoted and a recommended change written
+4. **Report is saved** to `reports/` and presented in full in the chat
+5. **Developer is prompted** — choose to implement yourself, hand off to the Code Implementer, or specify which items to implement
+6. **Code Implementer runs (if chosen)** — edits files one at a time, adds comments, stops at structural changes for explicit approval
+7. **Implementation summary is presented** — what was done, what was skipped, any observations
+
+### Understanding the Review Report
+
+Reports are saved with timestamped filenames:
+
+```
+reports/dev-review_2025-01-15_14-32-00_my-app.md
+```
+
+Any change marked `[REQUIRES APPROVAL]` will cause the Code Implementer to stop and wait before proceeding. These represent structural modifications that the developer must explicitly authorize — this cannot be bypassed by Claude Code auto-approve settings.
+
+### Customizing the Dev Assist Agents
+
+| File | Controls |
+|------|---------|
+| `dev-assist/agents/code-reviewer.md` | How findings are mapped to code, what gets flagged for approval, reporting format |
+| `dev-assist/agents/code-implementer.md` | How changes are applied, comment style, approval gate behavior |
+
+The orchestration logic lives in `.claude/commands/dev-assist.md`.
+
+---
+
+## Prerequisites
+
+| Requirement | Version | Needed For |
+|-------------|---------|-----------|
+| **Claude Code** (VSCode extension) | Latest | Both teams |
+| **Node.js** | 18 or higher | QA Team (Playwright MCP) |
+| **Git** | Any recent version | Both teams |
+
+The Dev Assist Team uses only Claude Code's built-in file tools — no additional packages or configuration required beyond what the QA Team already sets up.
+
+---
+
+## One-Time Machine Setup
+
+This setup is done once per developer machine.
+
+### Step 1: Install the Playwright MCP
+
+```bash
+npm install -g @playwright/mcp
+npx playwright install chromium
+```
+
+> **Why chromium only?** Chromium covers the vast majority of audit needs. For cross-browser coverage, also run `npx playwright install firefox webkit`.
+
+### Step 2: Configure Claude Code to Use Playwright
+
+Add the following to your user-level Claude configuration file. If the file already has content, merge the `mcpServers` key — do not replace the whole file.
+
+**macOS / Linux** — the file is `~/.claude.json`, where `~` is your home folder (e.g. `/Users/bradleyparker/.claude.json`).
+
+This file is hidden by default because it starts with a `.` — Finder will not show it. Open or create it with Terminal:
+
+```bash
+open -e ~/.claude.json
+```
+
+This opens it in TextEdit (creating the file if it does not exist). If you prefer VS Code:
+
+```bash
+code ~/.claude.json
+```
+
+Add this content:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+**Windows** — the file is at `C:\Users\YourName\.claude.json`. Open or create it with PowerShell:
+
+```powershell
+notepad $env:USERPROFILE\.claude.json
+```
+
+Notepad will prompt you to create the file if it does not exist. Add the same content.
+
+> **Why user-level config?** Both commands spawn sub-agents via the Task tool. Sub-agents inherit the Playwright MCP from the user-level config, giving each specialist agent its own browser access. The project-level `.mcp.json` covers the QA Manager — the user-level config covers the sub-agents.
+
+### Step 3: Verify the Setup
+
+Open this project in VSCode with Claude Code and ask: _"What Playwright browser tools do you have available?"_ — Claude should list tools like `browser_navigate`, `browser_screenshot`, etc.
+
+---
+
+## Per-Project Setup (After Cloning)
+
+### Step 1: Clone the Repository
+
+```bash
+git clone [your-repo-url] "Agent Teams"
+cd "Agent Teams"
+```
+
+### Step 2: Open in VSCode
+
+Open the project folder as its own VSCode workspace:
+
+```
+File → Open Folder → select this project folder
+```
+
+> **Important:** Open this folder directly, not as a subfolder inside a larger workspace. Both `/qa-audit` and `/dev-assist` are project-scoped commands — they only appear when this project is the active root workspace.
+
+### Step 3: Verify the Commands are Available
+
+In the Claude Code chat panel, type `/` — both `qa-audit` and `dev-assist` should appear in the command list.
 
 ---
 
 ## Getting Updates
-
-To pull the latest agent improvements:
 
 ```bash
 git pull
@@ -221,36 +372,32 @@ No build step, no install. The agents are markdown files.
 ## Team Architecture
 
 ```
-/qa-audit [target]
+/qa-audit [target]                        /dev-assist [qa-report] [codebase]
+    │                                             │
+    ▼                                             ▼
+QA Manager                               Code Review Manager
+(.claude/commands/qa-audit.md)           (.claude/commands/dev-assist.md)
+    │                                             │
+    ├──▶ User Tester                              └──▶ Code Reviewer
+    │    (agents/user-tester.md)                       (dev-assist/agents/code-reviewer.md)
+    │                                             │
+    ├──▶ Design Auditor                           ▼
+    │    (agents/design-auditor.md)          Developer prompted
+    │                                             │
+    └──▶ UX/UI Auditor                            └──▶ Code Implementer (optional)
+         (agents/ux-ui-auditor.md)                     (dev-assist/agents/code-implementer.md)
     │
     ▼
-QA Manager (.claude/commands/qa-audit.md)
-    │   Detects repo root, reads agent definitions,
-    │   takes initial Playwright screenshots
-    │
-    ├──▶ User Tester (agents/user-tester.md)
-    │       Uses Playwright to test as a real user
-    │
-    ├──▶ Design Auditor (agents/design-auditor.md)
-    │       Uses Playwright to inspect visual fidelity
-    │
-    └──▶ UX/UI Auditor (agents/ux-ui-auditor.md)
-            Uses Playwright to test interactions
-    │
-    ▼
-QA Manager synthesizes, deduplicates, iterates
-    │
-    ▼
-reports/qa-report_[timestamp]_[target].md
+reports/qa-report_[timestamp]_[target].md    reports/dev-review_[timestamp]_[codebase].md
 ```
 
 ---
 
 ## Troubleshooting
 
-### `/qa-audit` doesn't appear in the command list
+### A command doesn't appear in the command list
 
-Make sure you have the `QA Team` folder open as the **root** of your VSCode workspace — not as a subfolder inside a larger workspace. The command is project-scoped.
+Make sure this folder is open as the **root** of your VSCode workspace — not as a subfolder inside a larger workspace. Both commands are project-scoped.
 
 ### Playwright browser tools aren't available
 
@@ -264,15 +411,13 @@ Make sure you have the `QA Team` folder open as the **root** of your VSCode work
 
 ### The app requires authentication
 
-Run the audit on publicly accessible pages first. For authenticated flows, pass credentials as a note:
-
 ```
 /qa-audit https://yourapp.com --note "Login: admin@test.com / password123"
 ```
 
 ### Playwright can't reach a local dev server
 
-Make sure your dev server is running before starting the audit. Use the full URL with port:
+Make sure your dev server is running before starting the audit:
 
 ```
 /qa-audit http://localhost:3000
@@ -285,11 +430,6 @@ Make sure your dev server is running before starting the audit. Use the full URL
 mkdir -p reports && touch reports/.gitkeep
 ```
 
-**Windows (Command Prompt):**
-```cmd
-mkdir reports && type nul > reports\.gitkeep
-```
-
 **Windows (PowerShell):**
 ```powershell
 New-Item -ItemType Directory -Force reports; New-Item reports\.gitkeep
@@ -297,34 +437,31 @@ New-Item -ItemType Directory -Force reports; New-Item reports\.gitkeep
 
 ---
 
-## Adding More Agents
-
-To extend the team (e.g., add an Accessibility Specialist or Performance Auditor):
-
-1. Create a new file in `agents/` following the same format as existing agents
-2. Open `.claude/commands/qa-audit.md` and add the new agent to the "Spawn Audit Team" step
-3. Update `templates/audit-report.md` to include a section for the new agent
-4. Update this README
-
----
-
 ## File Structure
 
 ```
-QA Team/
+Agent Teams/
 ├── .claude/
 │   └── commands/
-│       └── qa-audit.md          ← The /qa-audit slash command (QA Manager)
-├── agents/
-│   ├── user-tester.md           ← User Tester role definition
-│   ├── design-auditor.md        ← Design Auditor role definition
-│   └── ux-ui-auditor.md         ← UX/UI Auditor role definition
-├── templates/
-│   └── audit-report.md          ← Report structure template
-├── reports/                     ← Generated audit reports (gitignored)
+│       ├── qa-audit.md              ← The /qa-audit slash command (QA Manager)
+│       └── dev-assist.md            ← The /dev-assist slash command (Code Review Manager)
+├── qa-team/                         ← QA Team files
+│   ├── agents/
+│   │   ├── user-tester.md
+│   │   ├── design-auditor.md
+│   │   └── ux-ui-auditor.md
+│   └── templates/
+│       └── audit-report.md
+├── dev-assist/                      ← Dev Assist Team files
+│   ├── agents/
+│   │   ├── code-reviewer.md
+│   │   └── code-implementer.md
+│   └── templates/
+│       └── review-report.md
+├── reports/                         ← All generated reports (gitignored)
 │   └── .gitkeep
-├── .mcp.json                    ← Project-level Playwright MCP config
-├── CLAUDE.md                    ← Claude context for this project
+├── .mcp.json                        ← Project-level Playwright MCP config
+├── CLAUDE.md                        ← Claude context for this project
 ├── .gitignore
-└── README.md                    ← This file
+└── README.md                        ← This file
 ```
