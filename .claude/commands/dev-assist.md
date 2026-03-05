@@ -14,9 +14,16 @@ If no arguments were provided, ask the developer:
 
 ---
 
-## Step 1: Detect Repository Root
+## Step 1: Detect Paths
 
-Run `pwd` using the Bash tool to get the absolute path of this repository. Store this as `REPO_ROOT` — you will use it for all file operations within this project.
+Run the following two commands using the Bash tool:
+
+```bash
+echo "$HOME/.claude"
+pwd
+```
+
+Store the first output as `AGENT_ROOT` — this is where all agent definition files and templates are installed. Store the second output as `PROJECT_ROOT` — this is the current project, where QA reports are found and review reports will be saved.
 
 ---
 
@@ -29,7 +36,7 @@ Parse `$ARGUMENTS`. You expect up to two paths:
 
 **If only one argument is provided:**
 - If it ends in `.md`, treat it as the QA report. Ask the developer for the codebase path before proceeding.
-- If it is a directory, look for the most recent file in `{REPO_ROOT}/reports/` whose name starts with `qa-report_`. If found, use it as the QA report and tell the developer which report you are using. If none is found, ask the developer for a QA report path.
+- If it is a directory, look for the most recent file in `{PROJECT_ROOT}/reports/` whose name starts with `qa-report_`. If found, use it as the QA report and tell the developer which report you are using. If none is found, ask the developer for a QA report path.
 
 **Before proceeding:** confirm that both paths exist and are readable. If either does not exist, tell the developer and ask for the correct path.
 
@@ -39,9 +46,9 @@ Parse `$ARGUMENTS`. You expect up to two paths:
 
 Using REPO_ROOT, read all of the following:
 
-- `{REPO_ROOT}/dev-assist/agents/code-reviewer.md`
-- `{REPO_ROOT}/dev-assist/agents/code-implementer.md`
-- `{REPO_ROOT}/dev-assist/templates/review-report.md`
+- `{AGENT_ROOT}/dev-team/agents/code-reviewer.md`
+- `{AGENT_ROOT}/dev-team/agents/code-implementer.md`
+- `{AGENT_ROOT}/dev-team/templates/review-report.md`
 
 ---
 
@@ -61,7 +68,7 @@ Then announce: *"Spawning Code Reviewer — this may take a few minutes dependin
 
 Spawn a Code Reviewer sub-agent using the Task tool. Pass the following in the agent's prompt:
 
-1. The full text of `dev-assist/agents/code-reviewer.md` as the agent's role definition
+1. The full text of `dev-team/agents/code-reviewer.md` as the agent's role definition
 2. The full text of the QA report
 3. The codebase path
 4. This instruction: *"The codebase is located at [CODEBASE_PATH]. Use Read, Grep, and Glob to explore it. Do not assume file locations — find them."*
@@ -77,11 +84,12 @@ When the Code Reviewer returns its report:
 1. Run `date +"%Y-%m-%d_%H-%M-%S"` using the Bash tool to get the current timestamp
 2. Derive a slug from the codebase path (for example: `/Users/name/projects/my-app` → `my-app`)
 3. Construct the filename: `dev-review_[timestamp]_[slug].md`
-4. Fill in the report template from `{REPO_ROOT}/dev-assist/templates/review-report.md` with the Code Reviewer's output
-5. Write the completed report to: `{REPO_ROOT}/reports/[filename]`
-6. Print the full report in the chat — do not truncate or summarize it
+4. Fill in the report template from `{AGENT_ROOT}/dev-team/templates/review-report.md` with the Code Reviewer's output
+5. Create the reports directory if it does not exist: run `mkdir -p {PROJECT_ROOT}/reports`
+6. Write the completed report to: `{PROJECT_ROOT}/reports/[filename]`
+7. Print the full report in the chat — do not truncate or summarize it
 
-Tell the developer: *"Review report saved to: {REPO_ROOT}/reports/[filename]"*
+Tell the developer: *"Review report saved to: {PROJECT_ROOT}/reports/[filename]"*
 
 ---
 
@@ -105,7 +113,7 @@ Count the total number of changes in the report and include that number in the p
 
 **If the developer chose option 2 or 3:** Spawn a Code Implementer sub-agent using the Task tool. Pass the following:
 
-1. The full text of `dev-assist/agents/code-implementer.md` as the agent's role definition
+1. The full text of `dev-team/agents/code-implementer.md` as the agent's role definition
 2. The full Code Reviewer report
 3. The codebase path
 4. The specific list of changes to implement (all changes, or the subset the developer specified)

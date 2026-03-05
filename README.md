@@ -8,6 +8,7 @@ A reusable, AI-powered toolkit containing two agent teams designed to work toget
 
 - [Quick Refresher](#quick-refresher)
 - [Quick Start Guide](#quick-start-guide)
+- [Global Installation](#global-installation)
 - [QA Team](#qa-team)
   - [What the QA Team Does](#what-the-qa-team-does)
   - [Running an Audit](#running-an-audit)
@@ -22,7 +23,6 @@ A reusable, AI-powered toolkit containing two agent teams designed to work toget
   - [Customizing the Dev Assist Agents](#customizing-the-dev-assist-agents)
 - [Prerequisites](#prerequisites)
 - [One-Time Machine Setup](#one-time-machine-setup)
-- [Per-Project Setup](#per-project-setup-after-cloning)
 - [Getting Updates](#getting-updates)
 - [Team Architecture](#team-architecture)
 - [Troubleshooting](#troubleshooting)
@@ -32,9 +32,9 @@ A reusable, AI-powered toolkit containing two agent teams designed to work toget
 
 ## Quick Refresher
 
-_Already completed setup? Here is everything you need._
+_Already set up? Here is everything you need._
 
-Open this project folder in VSCode, then type in the Claude Code chat:
+Both commands are available in **every project** once you have run `install.sh`. You do not need to open this repository to use them.
 
 ### QA Team Commands
 
@@ -53,29 +53,55 @@ Open this project folder in VSCode, then type in the Claude Code chat:
 | Review a QA report against a codebase | `/dev-assist /path/to/qa-report.md /path/to/codebase` |
 | Review using the most recent QA report | `/dev-assist /path/to/codebase` |
 
-Reports from both teams save automatically to the `reports/` folder.
+Reports save automatically to a `reports/` folder inside whichever project you are working in.
+
+### Updating Your Installation
+
+After pulling new agent versions from Git:
+
+```bash
+cd /path/to/QA\ Team
+git pull
+bash install.sh
+```
+
+Then restart the Claude Code extension: `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows) → **Restart Extension Host**.
 
 ---
 
 ## Quick Start Guide
 
-_New to this project? Follow these steps._
+_New to this project? Follow these steps in order._
 
-**Step 1 — Install Node.js 18 or higher** if you have not already: [nodejs.org](https://nodejs.org)
+### Step 1 — Clone This Repository
 
-> The Dev Assist Team does not require Node. This is only needed for the QA Team's Playwright browser.
+```bash
+git clone [your-repo-url] ~/Desktop/QA\ Team
+```
 
-**Step 2 — Install the Playwright MCP** (one-time, per machine, QA Team only):
+You can clone it anywhere. The path above is a convention — pick whatever works for your machine.
+
+### Step 2 — Install Node.js 18 or Higher
+
+Required for the QA Team's Playwright browser. Download from [nodejs.org](https://nodejs.org).
+
+> The Dev Assist Team does not require Node.
+
+### Step 3 — Install the Playwright MCP
+
+Run once per machine:
 
 ```bash
 npm install -g @playwright/mcp
 npx playwright install chromium
 ```
 
-**Step 3 — Configure Claude Code** to use Playwright. Open or create `~/.claude.json`:
+### Step 4 — Configure Claude Code to Use Playwright
 
-- macOS: run `open -e ~/.claude.json` in Terminal
-- Windows: run `notepad $env:USERPROFILE\.claude.json` in PowerShell
+Open or create `~/.claude.json`:
+
+- macOS / Linux: `open -e ~/.claude.json`
+- Windows: `notepad $env:USERPROFILE\.claude.json`
 
 Add this content (merge if the file already has content — do not replace the whole file):
 
@@ -90,27 +116,102 @@ Add this content (merge if the file already has content — do not replace the w
 }
 ```
 
-**Step 4 — Clone this repository** and open the folder in VSCode as its own workspace:
+Save the file.
+
+### Step 5 — Run the Install Script
+
+```bash
+bash ~/Desktop/QA\ Team/install.sh
+```
+
+This copies all agent files and slash commands into `~/.claude/`, making them available in every project.
+
+### Step 6 — Restart the Claude Code Extension
+
+- macOS: `Cmd+Shift+P` → **Restart Extension Host**
+- Windows: `Ctrl+Shift+P` → **Restart Extension Host**
+
+### Step 7 — Verify the Setup
+
+Open any project in VSCode and type `/` in the Claude Code chat — both `/qa-audit` and `/dev-assist` should appear. Then ask: _"What Playwright browser tools do you have available?"_ — Claude should list tools like `browser_navigate`, `browser_screenshot`, etc.
+
+### Step 8 — Run Your First Audit
+
+Open a project, make sure its dev server is running, then:
 
 ```
-File → Open Folder → select this project folder
-```
-
-**Step 5 — Verify the setup.** Type `/` in the Claude Code chat — both `qa-audit` and `dev-assist` should appear. Then ask: _"What Playwright browser tools do you have available?"_ — Claude should list tools like `browser_navigate`, `browser_screenshot`, etc.
-
-**Step 6 — Run your first audit:**
-
-```
-/qa-audit https://yourapp.com
+/qa-audit http://localhost:3000
 ```
 
 Then use the resulting report with the Dev Assist Team:
 
 ```
-/dev-assist /path/to/reports/qa-report_[timestamp].md /path/to/your/app
+/dev-assist /path/to/your/app
 ```
 
-For detailed setup instructions, see [One-Time Machine Setup](#one-time-machine-setup) below.
+The Dev Assist Team will find the most recent QA report in the project's `reports/` folder automatically.
+
+---
+
+## Global Installation
+
+### How It Works
+
+Claude Code looks for slash commands in two locations:
+
+1. `.claude/commands/` inside the current project (project-scoped — only available in that project)
+2. `~/.claude/commands/` in your home directory (**user-scoped — available in every project**)
+
+Running `install.sh` copies the command files into `~/.claude/commands/` and copies all agent definition files into `~/.claude/qa-team/` and `~/.claude/dev-team/`. Once installed, both commands appear automatically in every project you open — no per-project setup required.
+
+Reports are saved to a `reports/` folder inside whichever project you are working in at the time, not back into this repository.
+
+### File Locations After Installation
+
+```
+~/.claude/                          ← your home directory, not this repo
+├── commands/
+│   ├── qa-audit.md                 ← /qa-audit available everywhere
+│   └── dev-assist.md               ← /dev-assist available everywhere
+├── qa-team/
+│   ├── agents/
+│   │   ├── user-tester.md
+│   │   ├── design-auditor.md
+│   │   ├── ux-ui-auditor.md
+│   │   ├── content-readiness-auditor.md
+│   │   ├── performance-auditor.md
+│   │   └── accessibility-auditor.md
+│   └── templates/
+│       └── audit-report.md
+└── dev-team/
+    ├── agents/
+    │   ├── code-reviewer.md
+    │   └── code-implementer.md
+    └── templates/
+        └── review-report.md
+```
+
+### Onboarding a New Team Member
+
+Every developer on your team follows the same four steps:
+
+1. Clone this repository to their machine
+2. Run `install.sh`
+3. Confirm Playwright MCP is configured in `~/.claude.json` (Step 4 in Quick Start above)
+4. Restart the Claude Code extension
+
+That is it. The commands are now available in every project they open.
+
+### Keeping Agent Definitions Up to Date
+
+When agent definitions are updated in Git, team members update their installation by running two commands:
+
+```bash
+cd /path/to/QA\ Team
+git pull && bash install.sh
+```
+
+The install script always overwrites `~/.claude/` with the latest versions. No manual file copying is needed.
 
 ---
 
@@ -134,12 +235,18 @@ For detailed setup instructions, see [One-Time Machine Setup](#one-time-machine-
 
 ### Running an Audit
 
-From the Claude Code chat panel:
+From the Claude Code chat panel in any project:
 
 #### Audit a Live URL
 
 ```
 /qa-audit https://yourapp.com
+```
+
+#### Audit a Local Dev Server
+
+```
+/qa-audit http://localhost:3000
 ```
 
 #### Audit a Local Codebase
@@ -175,15 +282,16 @@ From the Claude Code chat panel:
 ### What Happens During an Audit
 
 1. **QA Manager classifies your input** — identifies URLs, local paths, design specs, and screenshots
-2. **Initial visual capture** — navigates to the URL and takes screenshots at 375px, 768px, 1280px, and 1440px viewports
-3. **Three agents run in parallel** — User Tester, Design Auditor, and UX/UI Auditor each independently inspect the application
-4. **QA Manager reviews results** — deduplicates overlapping findings, identifies gaps
-5. **Follow-up passes** — vague or unsubstantiated findings trigger targeted follow-up investigations
-6. **Final report generated** — saved to `reports/` and printed in full in the chat
+2. **Pre-audit questions** — QA Manager asks whether content is complete and what phone number should appear on the site
+3. **Comprehensive data collection** — QA Manager navigates the full application using Playwright, capturing screenshots at all four viewports (375px, 768px, 1280px, 1440px), running DOM evaluations, measuring performance, collecting console errors and network requests, testing modals and forms, running keyboard navigation tests, and capturing the accessibility tree. All data is compiled into a structured bundle.
+4. **Six agents analyze in parallel** — User Tester, Design Auditor, UX/UI Auditor, Content Readiness Auditor, Performance Auditor, and Accessibility Auditor each receive the pre-collected data bundle and apply their domain expertise. Agents analyze the data without needing direct browser access — this is what makes parallel execution reliable.
+5. **QA Manager reviews results** — deduplicates overlapping findings, identifies gaps
+6. **Follow-up passes** — vague or unsubstantiated findings trigger targeted data collection by the QA Manager, followed by focused agent analysis
+7. **Final report generated** — saved to `reports/` inside your project and printed in full in the chat
 
 ### Understanding the QA Report
 
-Reports are saved with timestamped filenames:
+Reports are saved with timestamped filenames inside your project:
 
 ```
 reports/qa-report_2025-01-15_14-32-00_yourapp-com.md
@@ -197,6 +305,8 @@ reports/qa-report_2025-01-15_14-32-00_yourapp-com.md
 | **Suggestions** | Polish and enhancement opportunities | Add to backlog |
 
 ### Customizing the QA Agents
+
+Edit the agent definition files in this repository and re-run `install.sh` to push updates to all machines.
 
 | File | Controls |
 |------|---------|
@@ -233,7 +343,7 @@ The QA Manager orchestration logic lives in `.claude/commands/qa-audit.md`.
 
 #### Review Using the Most Recent QA Report
 
-If only the codebase path is provided, the team looks for the most recent `qa-report_*.md` in the `reports/` folder:
+If only the codebase path is provided, the team looks for the most recent `qa-report_*.md` in the project's `reports/` folder:
 
 ```
 /dev-assist /path/to/codebase
@@ -244,14 +354,14 @@ If only the codebase path is provided, the team looks for the most recent `qa-re
 1. **Code Review Manager reads the QA report** — summarizes finding counts and severity breakdown
 2. **Code Reviewer is spawned** — explores the codebase to locate the code behind each finding
 3. **Review report is generated** — every finding mapped to an exact file and line, with current code quoted and a recommended change written
-4. **Report is saved** to `reports/` and presented in full in the chat
+4. **Report is saved** to `reports/` inside your project and presented in full in the chat
 5. **Developer is prompted** — choose to implement yourself, hand off to the Code Implementer, or specify which items to implement
 6. **Code Implementer runs (if chosen)** — edits files one at a time, adds comments, stops at structural changes for explicit approval
 7. **Implementation summary is presented** — what was done, what was skipped, any observations
 
 ### Understanding the Review Report
 
-Reports are saved with timestamped filenames:
+Reports are saved with timestamped filenames inside your project:
 
 ```
 reports/dev-review_2025-01-15_14-32-00_my-app.md
@@ -261,10 +371,12 @@ Any change marked `[REQUIRES APPROVAL]` will cause the Code Implementer to stop 
 
 ### Customizing the Dev Assist Agents
 
+Edit the agent definition files in this repository and re-run `install.sh` to push updates to all machines.
+
 | File | Controls |
 |------|---------|
-| `dev-assist/agents/code-reviewer.md` | How findings are mapped to code, what gets flagged for approval, reporting format |
-| `dev-assist/agents/code-implementer.md` | How changes are applied, comment style, approval gate behavior |
+| `dev-team/agents/code-reviewer.md` | How findings are mapped to code, what gets flagged for approval, reporting format |
+| `dev-team/agents/code-implementer.md` | How changes are applied, comment style, approval gate behavior |
 
 The orchestration logic lives in `.claude/commands/dev-assist.md`.
 
@@ -284,9 +396,17 @@ The Dev Assist Team uses only Claude Code's built-in file tools — no additiona
 
 ## One-Time Machine Setup
 
-This setup is done once per developer machine.
+This setup is done once per developer machine. After completing it, both commands are permanently available in every project.
 
-### Step 1: Install the Playwright MCP
+### Step 1: Clone the Repository
+
+```bash
+git clone [your-repo-url] ~/Desktop/QA\ Team
+```
+
+Clone it anywhere on your machine. The path above is just a convention.
+
+### Step 2: Install the Playwright MCP
 
 ```bash
 npm install -g @playwright/mcp
@@ -295,22 +415,20 @@ npx playwright install chromium
 
 > **Why chromium only?** Chromium covers the vast majority of audit needs. For cross-browser coverage, also run `npx playwright install firefox webkit`.
 
-### Step 2: Configure Claude Code to Use Playwright
+### Step 3: Configure Claude Code to Use Playwright
 
 Add the following to your user-level Claude configuration file. If the file already has content, merge the `mcpServers` key — do not replace the whole file.
 
-**macOS / Linux** — the file is `~/.claude.json`, where `~` is your home folder (e.g. `/Users/bradleyparker/.claude.json`).
-
-This file is hidden by default because it starts with a `.` — Finder will not show it. Open or create it with Terminal:
+**macOS / Linux** — the file is `~/.claude.json`. Open it with:
 
 ```bash
 open -e ~/.claude.json
 ```
 
-This opens it in TextEdit (creating the file if it does not exist). If you prefer VS Code:
+**Windows** — the file is at `C:\Users\YourName\.claude.json`. Open it with:
 
-```bash
-code ~/.claude.json
+```powershell
+notepad $env:USERPROFILE\.claude.json
 ```
 
 Add this content:
@@ -326,54 +444,40 @@ Add this content:
 }
 ```
 
-**Windows** — the file is at `C:\Users\YourName\.claude.json`. Open or create it with PowerShell:
+> **Why user-level config?** The QA Manager uses Playwright to collect all application data before spawning specialist agents. Because the QA Manager runs in the main conversation context — not as a sub-agent — it uses your user-level Playwright config directly. Specialist agents receive pre-collected data bundles and do not need browser access themselves.
 
-```powershell
-notepad $env:USERPROFILE\.claude.json
-```
-
-Notepad will prompt you to create the file if it does not exist. Add the same content.
-
-> **Why user-level config?** Both commands spawn sub-agents via the Task tool. Sub-agents inherit the Playwright MCP from the user-level config, giving each specialist agent its own browser access. The project-level `.mcp.json` covers the QA Manager — the user-level config covers the sub-agents.
-
-### Step 3: Verify the Setup
-
-Open this project in VSCode with Claude Code and ask: _"What Playwright browser tools do you have available?"_ — Claude should list tools like `browser_navigate`, `browser_screenshot`, etc.
-
----
-
-## Per-Project Setup (After Cloning)
-
-### Step 1: Clone the Repository
+### Step 4: Run the Install Script
 
 ```bash
-git clone [your-repo-url] "Agent Teams"
-cd "Agent Teams"
+bash ~/Desktop/QA\ Team/install.sh
 ```
 
-### Step 2: Open in VSCode
+This copies all agent definitions and command files into `~/.claude/`. You will see a confirmation message listing what was installed and where.
 
-Open the project folder as its own VSCode workspace:
+### Step 5: Restart the Claude Code Extension
 
-```
-File → Open Folder → select this project folder
-```
+- macOS: `Cmd+Shift+P` → **Restart Extension Host**
+- Windows: `Ctrl+Shift+P` → **Restart Extension Host**
 
-> **Important:** Open this folder directly, not as a subfolder inside a larger workspace. Both `/qa-audit` and `/dev-assist` are project-scoped commands — they only appear when this project is the active root workspace.
+### Step 6: Verify the Setup
 
-### Step 3: Verify the Commands are Available
-
-In the Claude Code chat panel, type `/` — both `qa-audit` and `dev-assist` should appear in the command list.
+Open any project in VSCode with Claude Code and type `/` in the chat — both `/qa-audit` and `/dev-assist` should appear. Then ask: _"What Playwright browser tools do you have available?"_ — Claude should list tools like `browser_navigate`, `browser_screenshot`, etc.
 
 ---
 
 ## Getting Updates
 
+When agent definitions or commands are updated in the repository:
+
 ```bash
+cd ~/Desktop/QA\ Team
 git pull
+bash install.sh
 ```
 
-No build step, no install. The agents are markdown files.
+Then restart the Claude Code extension to pick up the new versions.
+
+No build step. No install of packages. The agents are markdown files — `git pull` and `bash install.sh` is all that is needed.
 
 ---
 
@@ -384,28 +488,24 @@ No build step, no install. The agents are markdown files.
     │                                             │
     ▼                                             ▼
 QA Manager                               Code Review Manager
-(.claude/commands/qa-audit.md)           (.claude/commands/dev-assist.md)
+(~/.claude/commands/qa-audit.md)         (~/.claude/commands/dev-assist.md)
     │                                             │
     ├──▶ User Tester                              └──▶ Code Reviewer
-    │    (agents/user-tester.md)                       (dev-assist/agents/code-reviewer.md)
+    │    (~/.claude/qa-team/agents/)                   (~/.claude/dev-team/agents/)
     │                                             │
     ├──▶ Design Auditor                           ▼
-    │    (agents/design-auditor.md)          Developer prompted
-    │                                             │
-    ├──▶ UX/UI Auditor                            └──▶ Code Implementer (optional)
-    │    (agents/ux-ui-auditor.md)                     (dev-assist/agents/code-implementer.md)
-    │
+    │                                       Developer prompted
+    ├──▶ UX/UI Auditor                            │
+    │                                             └──▶ Code Implementer (optional)
     ├──▶ Content Readiness Auditor
-    │    (agents/content-readiness-auditor.md)
     │
     ├──▶ Performance Auditor
-    │    (agents/performance-auditor.md)
     │
     └──▶ Accessibility Auditor
-         (agents/accessibility-auditor.md)
     │
     ▼
-reports/qa-report_[timestamp]_[target].md    reports/dev-review_[timestamp]_[codebase].md
+{your-project}/reports/qa-report_[timestamp].md
+                        dev-review_[timestamp].md
 ```
 
 ---
@@ -414,7 +514,8 @@ reports/qa-report_[timestamp]_[target].md    reports/dev-review_[timestamp]_[cod
 
 ### A command doesn't appear in the command list
 
-Make sure this folder is open as the **root** of your VSCode workspace — not as a subfolder inside a larger workspace. Both commands are project-scoped.
+1. Confirm you have run `install.sh` — check that `~/.claude/commands/qa-audit.md` exists
+2. Restart the Claude Code extension: `Cmd+Shift+P` → **Restart Extension Host**
 
 ### Playwright browser tools aren't available
 
@@ -422,9 +523,7 @@ Make sure this folder is open as the **root** of your VSCode workspace — not a
    - macOS / Linux: `~/.claude.json`
    - Windows: `C:\Users\YourName\.claude.json`
 2. Verify the package is accessible: `npx @playwright/mcp@latest --version`
-3. Restart the Claude Code extension:
-   - macOS: `Cmd+Shift+P` → "Restart Extension Host"
-   - Windows: `Ctrl+Shift+P` → "Restart Extension Host"
+3. Restart the Claude Code extension
 
 ### The app requires authentication
 
@@ -442,6 +541,8 @@ Make sure your dev server is running before starting the audit:
 
 ### Reports directory is missing
 
+The commands create `reports/` automatically. If you need to create it manually:
+
 **macOS / Linux:**
 ```bash
 mkdir -p reports && touch reports/.gitkeep
@@ -457,12 +558,13 @@ New-Item -ItemType Directory -Force reports; New-Item reports\.gitkeep
 ## File Structure
 
 ```
-Agent Teams/
+QA Team/                              ← This Git repository
+├── install.sh                        ← Run this once per developer machine
 ├── .claude/
 │   └── commands/
 │       ├── qa-audit.md              ← The /qa-audit slash command (QA Manager)
 │       └── dev-assist.md            ← The /dev-assist slash command (Code Review Manager)
-├── qa-team/                         ← QA Team files
+├── qa-team/                         ← QA Team agent definitions
 │   ├── agents/
 │   │   ├── user-tester.md
 │   │   ├── design-auditor.md
@@ -472,16 +574,29 @@ Agent Teams/
 │   │   └── accessibility-auditor.md
 │   └── templates/
 │       └── audit-report.md
-├── dev-assist/                      ← Dev Assist Team files
+├── dev-team/                        ← Dev Assist Team agent definitions
 │   ├── agents/
 │   │   ├── code-reviewer.md
 │   │   └── code-implementer.md
 │   └── templates/
 │       └── review-report.md
-├── reports/                         ← All generated reports (gitignored)
+├── reports/                         ← Empty placeholder (actual reports save per-project)
 │   └── .gitkeep
-├── .mcp.json                        ← Project-level Playwright MCP config
-├── CLAUDE.md                        ← Claude context for this project
+├── .mcp.json                        ← Playwright MCP config (used when running from this folder)
+├── CLAUDE.md                        ← Claude context for this repository
 ├── .gitignore
 └── README.md                        ← This file
+```
+
+After running `install.sh`, the commands and agent files are also present at:
+
+```
+~/.claude/                           ← Your home directory — globally available
+├── commands/
+│   ├── qa-audit.md
+│   └── dev-assist.md
+├── qa-team/agents/
+├── qa-team/templates/
+├── dev-team/agents/
+└── dev-team/templates/
 ```
