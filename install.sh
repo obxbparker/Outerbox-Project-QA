@@ -29,6 +29,7 @@ mkdir -p "$CLAUDE_DIR/dev-team/templates"
 
 # Copy slash commands
 cp "$SCRIPT_DIR/.claude/commands/qa-audit.md"   "$CLAUDE_DIR/commands/qa-audit.md"
+cp "$SCRIPT_DIR/.claude/commands/qa-verify.md"  "$CLAUDE_DIR/commands/qa-verify.md"
 cp "$SCRIPT_DIR/.claude/commands/dev-assist.md" "$CLAUDE_DIR/commands/dev-assist.md"
 
 # Copy QA Team agent definitions and templates
@@ -47,7 +48,7 @@ cp "$SCRIPT_DIR/dev-team/templates/"*                "$CLAUDE_DIR/dev-team/templ
 
 echo "Installation complete."
 echo ""
-echo "  /qa-audit and /dev-assist are now available in every project."
+echo "  /qa-audit, /qa-verify, and /dev-assist are now available in every project."
 echo "  Reports save to a reports/ folder inside whichever project you are working in."
 echo ""
 echo "Next steps:"
