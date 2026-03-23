@@ -195,10 +195,23 @@ Run the following `browser_evaluate` calls on the homepage (and repeat key ones 
 ```
 
 **Broken images:**
+
+Scroll through the full page first to trigger lazy-loaded images, then evaluate. This prevents lazy images from being falsely reported as broken.
+
 ```js
-() => [...document.querySelectorAll('img')]
-  .filter(img => !img.complete || img.naturalWidth === 0)
-  .map(img => img.src)
+async () => {
+  const step = window.innerHeight;
+  const total = document.body.scrollHeight;
+  for (let y = 0; y < total; y += step) {
+    window.scrollTo(0, y);
+    await new Promise(r => setTimeout(r, 300));
+  }
+  window.scrollTo(0, 0);
+  await new Promise(r => setTimeout(r, 1000));
+  return [...document.querySelectorAll('img')]
+    .filter(img => !img.complete || img.naturalWidth === 0)
+    .map(img => img.src);
+}
 ```
 
 **Generic link text:**
@@ -254,15 +267,28 @@ Run the following `browser_evaluate` calls on the homepage (and repeat key ones 
 ```
 
 **Oversized images (served larger than displayed):**
+
+Scroll first to ensure lazy-loaded images have their natural dimensions available before comparing.
+
 ```js
-() => [...document.querySelectorAll('img')]
-  .filter(img => img.naturalWidth > 0 && img.naturalWidth > img.clientWidth * 2)
-  .map(img => ({
-    src: img.src,
-    naturalWidth: img.naturalWidth,
-    displayedWidth: img.clientWidth,
-    ratio: Math.round(img.naturalWidth / img.clientWidth)
-  }))
+async () => {
+  const step = window.innerHeight;
+  const total = document.body.scrollHeight;
+  for (let y = 0; y < total; y += step) {
+    window.scrollTo(0, y);
+    await new Promise(r => setTimeout(r, 300));
+  }
+  window.scrollTo(0, 0);
+  await new Promise(r => setTimeout(r, 1000));
+  return [...document.querySelectorAll('img')]
+    .filter(img => img.naturalWidth > 0 && img.naturalWidth > img.clientWidth * 2)
+    .map(img => ({
+      src: img.src,
+      naturalWidth: img.naturalWidth,
+      displayedWidth: img.clientWidth,
+      ratio: Math.round(img.naturalWidth / img.clientWidth)
+    }));
+}
 ```
 
 **Cumulative Layout Shift (best effort):**
